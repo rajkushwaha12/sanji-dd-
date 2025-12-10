@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Birthday Preview</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root{--bg1:#ffdee9;--bg2:#b5fffc;--accent:#ff4f81;--text:#d10057}
+  body { margin:0; padding:0; overflow-x:hidden; font-family:Arial, Helvetica, sans-serif; }
+  #page1, #page2 { height:100vh; width:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+  #page1 { background:linear-gradient(to bottom,var(--bg1),var(--bg2)); position:relative; }
+  .title { font-size:clamp(28px,4.5vw,48px); color:var(--text); text-shadow:2px 2px white; margin:0; }
+  .button { margin-top:20px; padding:12px 26px; background:var(--accent); color:#fff; border-radius:12px; cursor:pointer; border:none; font-size:18px; box-shadow:0 6px 18px rgba(0,0,0,0.12); }
+  .button:active{transform:translateY(1px)}
+  .balloon { width:60px; height:80px; border-radius:50%; position:absolute; animation:float 6s ease-in-out infinite; }
+  .b1{background:#ff4f81; left:10%; animation-duration:5s;} .b2{background:#ffd700; left:30%; animation-duration:7s;} .b3{background:#87cefa; left:50%; animation-duration:6s;} .b4{background:#90ee90; left:70%; animation-duration:8s;}
+  @keyframes float {0%{bottom:-120px;}50%{transform:translateX(20px);}100%{bottom:110%; transform:translateX(-20px);} }
+
+  /* PAGE 2 */
+  #page2 { display:none; background:linear-gradient(to top,#ffe8c7,#ffa9c1); padding:28px 20px 60px; text-align:center; position:relative; }
+  .birthday-text{ font-size:clamp(28px,5vw,56px); color:#d42a5c; text-shadow:3px 3px white; margin:8px 0; }
+  .cake { font-size:86px; margin-top:6px; display:inline-block; }
+  .wish { max-width:900px; font-size:clamp(16px,2.2vw,22px); margin-top:18px; color:#703030; text-shadow:1px 1px white; line-height:1.6; background:rgba(255,255,255,0.6); padding:18px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); }
+
+  #confetti { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:50; }
+
+  @keyframes pop {0%{transform:scale(0);}70%{transform:scale(1.05);}100%{transform:scale(1);} }
+  .cake { animation:pop 1s ease-out 1; }
+
+  /* small responsive tweaks */
+  @media (max-width:420px){ .wish{ padding:12px; } }
+
+/* Balloon tails fix */
+.balloon {
+  position: relative;
+}
+.balloon::after {
+  content: "";
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  width: 3px;
+  height: 35px;
+  background: #ffffffcc;
+  transform: translateX(-50%);
+  border-radius: 2px;
+}
+</style>
+</head>
+<body>
+
+<!-- PAGE 1 -->
+<section id="page1">
+  <h1 class="title">Click Here, Sanji Ji</h1>
+  <button id="startBtn" class="button">🎉 Tap to Continue 🎉</button>
+  <div class="balloon b1" aria-hidden="true"></div>
+  <div class="balloon b2" aria-hidden="true"></div>
+  <div class="balloon b3" aria-hidden="true"></div>
+  <div class="balloon b4" aria-hidden="true"></div>
+</section>
+
+<!-- PAGE 2 -->
+<section id="page2" aria-hidden="true">
+  <h1 class="birthday-text">Happy Birthday, Sanji Ji! 🎉</h1>
+  <div class="cake" aria-hidden="true">🎂</div>
+
+  <p class="wish">Wishing you the sweetest birthday filled with love, joy, and beautiful surprises. You bring warmth and kindness to everyone around you. It's sad not to see you today, despite my hope that my wish reaches you. You are more than a sister to me, just like a mother figure. I wish everything you touch becomes soulful, alive, and happy. Words may be few to wish you, but I also hope and pray that your success reaches a mountain where even a person fails to conquer and faints seeing it. Everyone, and mostly I, will run swiftly with your feet on roads so far unexplored that they are still hidden from sight like fading dreams. Those mountains, paths, and trails are all yours to climb. My eyes will see it through those shining eyes that are yours. And if someday your dream blooms into flowers, then their fragrance will spread all over the universe. Still, words are less — Happy Birthday, Sanji dd! 💛✨</p>
+
+  <!-- Confetti canvas and music (created/controlled via JS) -->
+  <canvas id="confetti"></canvas>
+  <audio id="music" loop>
+    <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_f38e2c09b3.mp3?filename=happy-birthday-113256.mp3" type="audio/mpeg">
+    <!-- Fallback text -->
+    Your browser does not support the audio element.
+  </audio>
+</section>
+
+<script>
+// Wrap setup in DOMContentLoaded to ensure elements exist before access
+document.addEventListener('DOMContentLoaded', function () {
+  const page1 = document.getElementById('page1');
+  const page2 = document.getElementById('page2');
+  const startBtn = document.getElementById('startBtn');
+  const confettiCanvas = document.getElementById('confetti');
+  const music = document.getElementById('music');
+
+  // Defensive checks
+  if (!page1 || !page2 || !startBtn || !confettiCanvas) {
+    console.error('Essential DOM elements not found:', {page1, page2, startBtn, confettiCanvas});
+    return;
+  }
+
+  // Hide page2 initially (ensure aria-hidden)
+  page2.style.display = 'none';
+  page2.setAttribute('aria-hidden','true');
+
+  // Toggle to page 2 when button clicked
+  startBtn.addEventListener('click', goToPage2);
+
+  function goToPage2() {
+    // hide page1
+    page1.style.display = 'none';
+    page1.setAttribute('aria-hidden','true');
+    // show page2
+    page2.style.display = 'flex';
+    page2.setAttribute('aria-hidden','false');
+
+    // try to play music (may be blocked by user agent - handle promise)
+    if (music) {
+      // set volume lower to be pleasant
+      music.volume = 0.6;
+      const p = music.play();
+      if (p !== undefined) {
+        p.catch(err => {
+          // Autoplay might be blocked; add a visible play hint
+          console.warn('Autoplay prevented:', err);
+          // create a small play button overlay
+          createPlayHint();
+        });
+      }
+    }
+
+    // start confetti animation
+    startConfetti();
+  }
+
+  // small helper to show play hint
+  function createPlayHint(){
+    const hint = document.createElement('button');
+    hint.textContent = 'Play music';
+    hint.style.position = 'fixed';
+    hint.style.bottom = '18px';
+    hint.style.right = '18px';
+    hint.style.zIndex = 100;
+    hint.style.padding = '10px 14px';
+    hint.style.borderRadius = '10px';
+    hint.style.background = 'rgba(0,0,0,0.7)';
+    hint.style.color = '#fff';
+    hint.style.border = 'none';
+    hint.style.cursor = 'pointer';
+    hint.addEventListener('click', function(){ music.play().then(()=>hint.remove()).catch(()=>{}); });
+    document.body.appendChild(hint);
+  }
+
+  /* CONFETTI: simple particle system drawn to canvas */
+  let ctx = confettiCanvas.getContext('2d');
+  let confettiParticles = [];
+  let confettiRunning = false;
+
+  function resizeCanvas(){
+    confettiCanvas.width = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
+  }
+  // initialize size
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  function startConfetti(){
+    if (confettiRunning) return;
+    confettiRunning = true;
+
+    // populate particles
+    confettiParticles = [];
+    const count = Math.min(300, Math.floor(window.innerWidth / 4));
+    for (let i = 0; i < count; i++){
+      confettiParticles.push({
+        x: Math.random() * confettiCanvas.width,
+        y: Math.random() * confettiCanvas.height - confettiCanvas.height,
+        r: Math.random() * 6 + 2,
+        dx: (Math.random() - 0.5) * 2,
+        dy: Math.random() * 3 + 1,
+        rot: Math.random()*360,
+        drot: (Math.random()-0.5)*6,
+        color: `hsl(${Math.random()*360},90%,60%)`
+      });
+    }
+
+    // animate
+    requestAnimationFrame(confettiLoop);
+    // stop after a while (e.g., 12s) to conserve resources
+    setTimeout(()=>{ confettiRunning = false; }, 12000);
+  }
+
+  function confettiLoop(){
+    if (!confettiRunning && confettiParticles.length === 0) {
+      ctx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+      return;
+    }
+    ctx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+    for (let i = 0; i < confettiParticles.length; i++){
+      const p = confettiParticles[i];
+      // draw as rectangle rotated
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI/180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.r/2, -p.r/2, p.r*1.8, p.r);
+      ctx.restore();
+
+      p.x += p.dx;
+      p.y += p.dy;
+      p.rot += p.drot;
+
+      // recycle particle
+      if (p.y > confettiCanvas.height + 20){
+        p.y = -20;
+        p.x = Math.random() * confettiCanvas.width;
+      }
+    }
+
+    // gradually reduce particles if confettiRunning is false
+    if (!confettiRunning && confettiParticles.length > 0){
+      confettiParticles.pop();
+    }
+
+    if (confettiParticles.length > 0) requestAnimationFrame(confettiLoop);
+  }
+
+  // Accessibility: also allow Enter key on the start button
+  startBtn.addEventListener('keyup', function(e){ if(e.key === 'Enter') startBtn.click(); });
+
+}); // DOMContentLoaded
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const audio = document.getElementById('bgmusic');
+  if (audio) {
+    audio.volume = 0.6;
+    const playAudio = () => audio.play().catch(() => {});
+    playAudio();
+    document.addEventListener('click', playAudio, { once: true });
+  }
+});
+</script>
+</body>
+</html>
